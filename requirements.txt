@@ -1,0 +1,22 @@
+crewai>=0.28.8
+openai>=1.12.0
+crewai[tools]>=0.28.8
+python-dotenv>=1.0.0
+
+# Speech-to-Text (STT) dependencies
+openai-whisper>=20231117
+pyaudio>=0.2.11
+SoundFile>=0.12.1
+
+# Text-to-Speech (TTS) dependencies
+pyttsx3>=2.90
+gTTS>=2.4.0
+
+# Audio processing
+numpy>=1.24.0
+scipy>=1.11.0
+librosa>=0.10.0
+
+# Additional utilities for speech processing
+keyboard>=0.13.5
+pygame>=2.5.0
