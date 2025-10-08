@@ -42,8 +42,20 @@ class SpeechManager:
         # Initialize pygame mixer for audio playback
         pygame.mixer.init()
         
+        # Check gTTS availability
+        self.gtts_available = self._check_gtts_availability()
+        
         self._load_whisper_model()
         self._setup_tts_engine()
+    
+    def _check_gtts_availability(self):
+        """Check if gTTS is available"""
+        try:
+            from gtts import gTTS
+            return True
+        except ImportError:
+            print("⚠️ gTTS not available - will use local TTS only")
+            return False
     
     def _load_whisper_model(self):
         """Load Whisper model for speech recognition"""
@@ -250,11 +262,11 @@ class SpeechManager:
             
             text = result["text"].strip()
             
-            if text:
+            if text and len(text) > 0:
                 print(f"✅ Transcription: '{text}'")
                 return text
             else:
-                print("❌ No speech detected")
+                print("❌ No speech detected (empty transcription)")
                 return None
                 
         except Exception as e:
@@ -329,8 +341,8 @@ class SpeechManager:
     
     def text_to_speech_gtts(self, text: str, lang: str = "en") -> bool:
         """
-        Convert text to speech using Google TTS (gTTS)
-        Requires internet connection but provides better quality
+        Convert text to speech using Google TTS (gTTS) - improved for consecutive calls
+        Requires internet connection but provides better quality and reliability
         
         Args:
             text: Text to convert to speech
@@ -340,27 +352,45 @@ class SpeechManager:
             True if successful, False otherwise
         """
         try:
-            print("🔊 Generating speech with Google TTS...")
-            
             # Create gTTS object
             tts = gTTS(text=text, lang=lang, slow=False)
             
-            # Save to temporary file
-            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.mp3')
-            tts.save(temp_file.name)
+            # Save to temporary file with unique name
+            import uuid
+            temp_file_path = os.path.join(tempfile.gettempdir(), f"tts_{uuid.uuid4().hex}.mp3")
+            tts.save(temp_file_path)
             
-            # Play audio using pygame
-            pygame.mixer.music.load(temp_file.name)
+            # Ensure file is written
+            time.sleep(0.1)
+            
+            # Stop any currently playing audio
+            pygame.mixer.music.stop()
+            time.sleep(0.1)
+            
+            # Load and play audio
+            pygame.mixer.music.load(temp_file_path)
             pygame.mixer.music.play()
             
-            # Wait for playback to finish
-            while pygame.mixer.music.get_busy():
+            # Wait for playback to finish with timeout
+            timeout = 120  # Increased to 2 minutes for long introductions
+            start_time = time.time()
+            while pygame.mixer.music.get_busy() and (time.time() - start_time) < timeout:
                 time.sleep(0.1)
             
-            # Clean up
-            os.unlink(temp_file.name)
+            # Check if we timed out
+            elapsed_time = time.time() - start_time
+            if elapsed_time >= timeout:
+                print(f"⚠️ TTS timed out after {elapsed_time:.1f} seconds")
             
-            print("✅ Speech playback complete")
+            # Ensure audio fully completes
+            time.sleep(0.5)
+            
+            # Clean up
+            try:
+                os.unlink(temp_file_path)
+            except:
+                pass  # File might be locked, ignore cleanup errors
+            
             return True
             
         except Exception as e:
@@ -390,35 +420,39 @@ class SpeechManager:
         if not clean_text:
             return False
         
-        # Use the proven working method - fresh engine for each utterance
-        return self._speak_with_fresh_engine(clean_text)
+        # Switch to gTTS for better reliability and quality
+        if use_gtts and self.gtts_available:
+            return self.text_to_speech_gtts(clean_text)
+        else:
+            # Fallback to local TTS if gTTS fails
+            return self._speak_with_fresh_engine(clean_text)
     
     def _speak_with_fresh_engine(self, text: str) -> bool:
-        """Create fresh TTS engine for each utterance - proven to work"""
+        """Use main engine with proper synchronization and very long delays"""
         try:
-            import pyttsx3
+            import time
             
-            # Create fresh engine
-            engine = pyttsx3.init(driverName='sapi5')
+            if not self.tts_engine:
+                print("❌ No TTS engine available")
+                return False
             
-            # Configure voice - prefer English
-            voices = engine.getProperty('voices')
-            if voices:
-                for voice in voices:
-                    if 'english' in voice.name.lower() and ('zira' in voice.name.lower() or 'david' in voice.name.lower()):
-                        engine.setProperty('voice', voice.id)
-                        break
+            # Clear any pending speech
+            try:
+                self.tts_engine.stop()
+            except:
+                pass
             
-            engine.setProperty('rate', 160)
-            engine.setProperty('volume', 0.8)
+            # Wait a moment for engine to be ready
+            time.sleep(0.3)
             
-            # Speak
-            engine.say(text)
-            engine.runAndWait()
+            # Queue the text
+            self.tts_engine.say(text)
             
-            # Clean up
-            engine.stop()
-            del engine
+            # Run and wait - this should block until complete
+            self.tts_engine.runAndWait()
+            
+            # Ensure Windows audio completes
+            time.sleep(2.0)
             
             return True
             

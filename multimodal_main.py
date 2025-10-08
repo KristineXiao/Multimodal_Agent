@@ -177,72 +177,140 @@ def get_user_choice_multimodal(mode, speech_manager):
             print("❌ Invalid choice! Please type 1, 2, or 3.")
     
     elif mode == "2":  # Voice only
-        print(choice_prompt)
         if speech_manager:
-            # Speak the prompt with working TTS
-            prompt_text = "What would you like recommendations for? Say one for food, two for activities, or three for both."
-            speech_manager.text_to_speech(prompt_text, use_gtts=False)
+            # Pure voice mode - speak the options
+            
+            # Speak the full prompt with options
+            full_prompt = (
+                "Now, what would you like recommendations for? "
+                "You have three options: "
+                "Say 'one' or 'food' for restaurant recommendations. "
+                "Say 'two' or 'activities' for things to do. "
+                "Or say 'three' or 'both' for food and activities together. "
+                "What's your choice?"
+            )
+            speech_manager.text_to_speech(full_prompt, use_gtts=True)
             
             # Now try voice input with the fixed STT
-            max_attempts = 2
+            max_attempts = 3
             for attempt in range(max_attempts):
-                print(f"\n🎤 Voice input (attempt {attempt + 1}/{max_attempts}):")
+                print(f"🎤 Listening for your choice... (attempt {attempt + 1}/{max_attempts})")
                 voice_text = speech_manager.get_voice_input(
-                    "Say your choice: 'one', 'two', or 'three'",
-                    max_duration=8
+                    "",  # No text prompt - pure voice mode
+                    max_duration=10  # Give more time
                 )
                 
                 if voice_text:
                     parsed_choice = parse_voice_choice(voice_text)
                     if parsed_choice:
                         choice_names = {"1": "food", "2": "activities", "3": "both"}
-                        print(f"✅ Understood: You chose {choice_names[parsed_choice]}")
-                        confirmation = f"Great! I understood you chose {choice_names[parsed_choice]}. Let me get those recommendations!"
-                        speech_manager.text_to_speech(confirmation, use_gtts=False)
+                        print(f"✅ You chose: {choice_names[parsed_choice]}")
+                        confirmation = f"Perfect! I'll give you {choice_names[parsed_choice]} recommendations."
+                        transition = f"Let me start by introducing myself, and then I'll share some amazing {choice_names[parsed_choice]} suggestions that I think you'll really enjoy!"
+                        speech_manager.text_to_speech(confirmation, use_gtts=True)
+                        speech_manager.text_to_speech(transition, use_gtts=True)
                         return parsed_choice
                     else:
-                        print(f"❓ I heard: '{voice_text}' but couldn't understand your choice.")
+                        print(f"🤔 I heard: '{voice_text}'")
                         if attempt < max_attempts - 1:
-                            speech_manager.text_to_speech("I didn't understand that. Please try again and say one, two, or three.", use_gtts=False)
+                            retry_msg = "I heard you but didn't understand your choice. Please say 'one' for food, 'two' for activities, or 'three' for both."
+                            speech_manager.text_to_speech(retry_msg, use_gtts=True)
                 else:
                     print("❌ No speech detected.")
                     if attempt < max_attempts - 1:
-                        speech_manager.text_to_speech("I didn't hear anything. Let's try again.", use_gtts=False)
+                        retry_msg = "I didn't hear you clearly. Please speak a bit louder and say your choice: one, two, or three."
+                        speech_manager.text_to_speech(retry_msg, use_gtts=True)
             
-            # Fallback to text input after voice attempts fail
-            print("\n⚠️ Voice input didn't work. Let's use text input:")
-            speech_manager.text_to_speech("Let's try typing your choice instead.", use_gtts=False)
+            # Final fallback after all voice attempts
+            print("\n⚠️ Voice recognition isn't working well. Let me switch to text input for this part.")
+            fallback_msg = "I'm having trouble with voice recognition right now. Let me ask you to type your choice instead, and then I'll continue speaking to you."
+            speech_manager.text_to_speech(fallback_msg, use_gtts=True)
+        else:
+            print(choice_prompt)
         
-        # Fallback to text
+        # Fallback to text input
+        print("\nWhat would you like recommendations for?")
+        print("1. Food recommendations")  
+        print("2. Things to do (activities)")
+        print("3. Both food and activities")
+        
         while True:
             user_choice = input("Your choice (1, 2, or 3): ").strip()
             if user_choice in ["1", "2", "3"]:
                 if speech_manager:
                     choice_names = {"1": "food", "2": "activities", "3": "both"}
-                    confirmation = f"Perfect! You chose {choice_names[user_choice]}."
-                    speech_manager.text_to_speech(confirmation, use_gtts=False)
+                    confirmation = f"Perfect! You chose {choice_names[user_choice]} recommendations. Now I'll continue in voice mode."
+                    transition = f"Let me introduce myself first, and then I'll share some excellent {choice_names[user_choice]} suggestions with you!"
+                    speech_manager.text_to_speech(confirmation, use_gtts=True)
+                    speech_manager.text_to_speech(transition, use_gtts=True)
                 return user_choice
             print("❌ Invalid choice! Please type 1, 2, or 3.")
     
     elif mode == "3":  # Mixed mode
         print(choice_prompt)
-        print("🎤 Type your choice (1, 2, or 3) and I'll respond with both text and voice!")
+        if speech_manager:
+            # Also speak the prompt in mixed mode
+            prompt_text = "What would you like recommendations for? You can type one, two, or three, or say your choice out loud."
+            speech_manager.text_to_speech(prompt_text, use_gtts=True)
         
+        print("🎤 You can type your choice OR press ENTER to use voice input:")
+        
+        user_input = input("Your choice (1, 2, 3, or ENTER for voice): ").strip()
+        
+        if user_input in ["1", "2", "3"]:
+            # Text input
+            if speech_manager:
+                choice_names = {"1": "food", "2": "activities", "3": "both"}
+                confirmation = f"Perfect! You chose {choice_names[user_input]} recommendations."
+                transition = f"Let me start by introducing myself, and then I'll share some great {choice_names[user_input]} suggestions that I think you'll love!"
+                speech_manager.text_to_speech(confirmation, use_gtts=True)
+                speech_manager.text_to_speech(transition, use_gtts=True)
+            return user_input
+        elif user_input == "" and speech_manager:
+            # Voice input
+            print("🎤 Using voice input...")
+            speech_manager.text_to_speech("I'm listening for your choice.", use_gtts=True)
+            
+            voice_text = speech_manager.get_voice_input("", max_duration=8)
+            if voice_text:
+                parsed_choice = parse_voice_choice(voice_text)
+                if parsed_choice:
+                    choice_names = {"1": "food", "2": "activities", "3": "both"}
+                    print(f"✅ Voice input: You chose {choice_names[parsed_choice]}")
+                    confirmation = f"Great! I heard you chose {choice_names[parsed_choice]} recommendations."
+                    transition = f"Let me start by introducing myself, and then I'll share some wonderful {choice_names[parsed_choice]} suggestions that I think will be perfect for you!"
+                    speech_manager.text_to_speech(confirmation, use_gtts=True)
+                    speech_manager.text_to_speech(transition, use_gtts=True)
+                    return parsed_choice
+                else:
+                    print(f"🤔 I heard: '{voice_text}' - let's use text input instead")
+                    speech_manager.text_to_speech("I didn't understand that. Let's try typing instead.", use_gtts=True)
+            else:
+                print("❌ No voice detected - using text input")
+                speech_manager.text_to_speech("I didn't hear anything. Let's try typing.", use_gtts=True)
+        
+        # Fallback to standard text input
         while True:
             user_choice = input("Your choice (1, 2, or 3): ").strip()
             if user_choice in ["1", "2", "3"]:
                 if speech_manager:
                     choice_names = {"1": "food", "2": "activities", "3": "both"}
-                    confirmation = f"Perfect! You chose {choice_names[user_choice]}."
-                    speech_manager.text_to_speech(confirmation, use_gtts=False)
+                    confirmation = f"Got it! You chose {choice_names[user_choice]}."
+                    transition = f"Now let me introduce myself, and then I'll share some fantastic {choice_names[user_choice]} recommendations that I think will be perfect for you!"
+                    speech_manager.text_to_speech(confirmation, use_gtts=True)
+                    speech_manager.text_to_speech(transition, use_gtts=True)
                 return user_choice
             print("❌ Invalid choice! Please type 1, 2, or 3.")
 
 def output_multimodal(text, mode, speech_manager):
     """Output text with support for different interaction modes"""
     
-    # Always print to console
-    print(text)
+    # For voice-only mode, minimize text output
+    if mode == "2":
+        print("🔊 Speaking...")
+    else:
+        # For text-only and mixed modes, show full text
+        print(text)
     
     # Add speech output for voice and mixed modes
     if mode in ["2", "3"] and speech_manager:
@@ -251,36 +319,62 @@ def output_multimodal(text, mode, speech_manager):
         
         # Remove excessive formatting for speech
         clean_text = re.sub(r'\*\*([^*]+)\*\*', r'\1', clean_text)  # Remove bold formatting
-        clean_text = re.sub(r'\*([^*]+)\*', r'\1', clean_text)      # Remove italic formatting
+        clean_text = re.sub(r'\*([^*]+)\*', r'\1', clean_text)      # Remove italic formatting  
         clean_text = re.sub(r'#{1,6}\s*', '', clean_text)           # Remove markdown headers
         clean_text = re.sub(r'=+', '', clean_text)                  # Remove separator lines
         clean_text = re.sub(r'[🎓🌟📍👋🍜🥢🌮🎨🏃🎭🎯]', '', clean_text)  # Remove emojis for cleaner speech
         
-        # Split into smaller chunks for better speech pacing
-        sentences = [s.strip() for s in clean_text.split('\n') if s.strip()]
-        
-        for sentence in sentences:
-            if sentence and len(sentence) > 3:  # Skip very short lines
-                speech_manager.text_to_speech(sentence, use_gtts=True)
+        # Split into meaningful chunks for better speech pacing
+        # Handle different content types
+        if "## " in clean_text:  # Has sections like "## Restaurants"
+            sections = clean_text.split("## ")
+            for section in sections:
+                if section.strip():
+                    if not section.startswith("## "):
+                        section = "## " + section if len(sections) > 1 else section
+                    _speak_section(section.strip(), speech_manager)
+        else:
+            # Regular content - split by lines and paragraphs
+            _speak_section(clean_text, speech_manager)
+
+def _speak_section(text, speech_manager):
+    """Helper function to speak a section of text naturally"""
+    if not text or not text.strip():
+        return
+    
+    # Split into sentences and meaningful chunks
+    lines = [line.strip() for line in text.split('\n') if line.strip()]
+    
+    for line in lines:
+        if len(line) > 3:  # Skip very short lines
+            # Handle numbered lists specially
+            if re.match(r'^\d+\.', line):
+                # This is a numbered item - speak it as one unit
+                speech_manager.text_to_speech(line, use_gtts=True)
+            elif line.startswith("## "):
+                # Section header
+                header = line.replace("## ", "")
+                speech_manager.text_to_speech(f"Here are my {header.lower()} recommendations:", use_gtts=True)
+            else:
+                # Regular sentence
+                speech_manager.text_to_speech(line, use_gtts=True)
 
 def main():
-    print("🎓 Welcome to Your Multimodal Harvard Student Digital Twin!")
-    print("=" * 65)
-    print("Hi! I'm Tong. Let me share a bit about myself and recommend some fun places in Boston.")
-    print("This system now supports both text and speech interaction!")
-    print("=" * 65)
-
-    # Initialize speech manager
+    # Simple initial greeting - text only
+    print("🎓 Multimodal Boston Guide Agent")
+    print("=" * 35)
+    
+    # Initialize speech manager quietly
     speech_manager = None
     try:
-        print("\n🔄 Initializing speech capabilities...")
+        print("🔄 Initializing speech capabilities...")
         speech_manager = SpeechManager(whisper_model_size="base")
         print("✅ Speech system ready!")
     except Exception as e:
         print(f"⚠️ Speech initialization failed: {e}")
         print("📝 Continuing with text-only mode...")
     
-    # Get interaction mode
+    # Get interaction mode first
     mode = get_interaction_mode()
     mode_names = {
         "1": "Text only",
@@ -290,8 +384,45 @@ def main():
     
     print(f"\n🎛️ Using {mode_names[mode]} interaction")
     
-    if mode in ["2", "3"] and speech_manager:
-        speech_manager.text_to_speech(f"Great! We're using {mode_names[mode]} interaction. Let's get started!")
+    # Now provide personalized welcome based on the chosen mode
+    base_welcome = (
+        "Welcome to Your Harvard Student Digital Twin! "
+        "Hi! I'm Tong, and I'm excited to share a bit about myself and recommend some amazing places and food in Boston for you."
+    )
+    
+    if mode == "1":
+        # Text only - show full welcome
+        print("\n" + "=" * 65)
+        print(base_welcome)
+        print("=" * 65)
+        
+    elif mode == "2" and speech_manager:
+        # Voice only - minimal text, speak everything
+        print("\n🔊 Voice-only mode active - I'll speak to you now...")
+        print("=" * 50)
+        
+        # Personalized voice-only welcome
+        voice_welcome = (
+            f"{base_welcome} "
+            "I'll be speaking to you throughout our conversation, and I'll listen for your voice responses. "
+            "Let's begin our voice conversation!"
+        )
+        speech_manager.text_to_speech(voice_welcome, use_gtts=True)
+        
+    elif mode == "3":
+        # Mixed mode - show text AND speak
+        print("\n" + "=" * 65)
+        print(base_welcome)
+        print("=" * 65)
+        
+        if speech_manager:
+            # Personalized mixed mode intro
+            mixed_welcome = (
+                f"{base_welcome} "
+                "I'll show you text and speak to you as well. You can type or use voice input throughout our conversation. "
+                "Let's get started!"
+            )
+            speech_manager.text_to_speech(mixed_welcome, use_gtts=True)
 
     # Get user choice with multimodal support
     user_choice = get_user_choice_multimodal(mode, speech_manager)
@@ -319,9 +450,8 @@ def main():
         role='Tong - Personal Boston Recommender',
         goal='Provide personalized, current Boston recommendations based on personal introduction context',
         backstory="""You are Tong, a Harvard M.S. Data Science student who is good at creating personalized recommendations 
-        based on someone's unique background, interests, and personality. You excel at connecting personal interests 
-        to specific places and experiences in the Boston area, especially for students. You always reference the 
-        person's introduction to explain why each recommendation is perfect for them.""",
+        based on your unique background, interests, and personality. You excel at connecting personal interests 
+        to specific places and experiences in the Boston area, especially for students.""",
         verbose=False,
         allow_delegation=False,
         llm=llm
@@ -336,13 +466,14 @@ def main():
         agents=[self_intro_agent, boston_guide_agent],
         tasks=[intro_task, recommendation_task],
         process=Process.sequential,
-        verbose=True
+        verbose=False
     )
 
     # Run the crew
     try:
-        startup_message = "\n👋 Let me introduce myself and find perfect recommendations for you..."
-        output_multimodal(startup_message, mode, speech_manager)
+        if mode == "1":
+            print("\n👋 Let me introduce myself and find perfect recommendations for you...")
+        # For voice modes, go straight to introduction without redundant startup message
         
         # Execute the crew
         result = crew.kickoff()
@@ -350,12 +481,38 @@ def main():
         # Get introduction result
         intro_result = intro_task.output.raw if hasattr(intro_task, 'output') else "Introduction completed"
         
-        # Output introduction
-        output_multimodal(intro_result, mode, speech_manager)
+        # Output introduction - handle specially for complete speech
+        if mode == "1":
+            print(intro_result)
+        elif mode in ["2", "3"] and speech_manager:
+            # For voice modes, speak introduction as one complete unit
+            if mode == "2":
+                print("🔊 Speaking introduction...")
+            else:
+                print(intro_result)
+            
+            # Clean the introduction text for speech
+            clean_intro = intro_result
+            clean_intro = re.sub(r'\*\*([^*]+)\*\*', r'\1', clean_intro)  # Remove bold formatting
+            clean_intro = re.sub(r'\*([^*]+)\*', r'\1', clean_intro)      # Remove italic formatting  
+            clean_intro = re.sub(r'#{1,6}\s*', '', clean_intro)           # Remove markdown headers
+            clean_intro = re.sub(r'[🎓🌟📍👋🍜🥢🌮🎨🏃🎭🎯]', '', clean_intro)  # Remove emojis
+            clean_intro = clean_intro.strip()
+            
+            # Speak the entire introduction as one unit
+            speech_manager.text_to_speech(clean_intro, use_gtts=True)
+            
+            # Small delay to ensure introduction fully completes before transition
+            import time
+            time.sleep(1.0)
 
-        # Add a transition
-        transition_message = "\nNow that you know me better, here are my personalized Boston recommendations just for you!\n"
-        output_multimodal(transition_message, mode, speech_manager)
+        # Add a natural transition
+        if mode == "1":
+            transition_message = "\nNow that you know me better, here are my personalized Boston recommendations just for you!\n"
+            print(transition_message)
+        elif mode in ["2", "3"] and speech_manager:
+            transition_message = "Now that you know more about me, let me share my personalized Boston recommendations with you!"
+            speech_manager.text_to_speech(transition_message, use_gtts=True)
         
         # Output recommendations
         output_multimodal(str(result), mode, speech_manager)
@@ -380,16 +537,27 @@ def main():
             f.write("📍 Recommendations\n")
             f.write(str(result) + "\n")
         
-        closing_message = "\n🌟 I hope you like my recommendations and have a great time in Boston!"
-        output_multimodal(closing_message, mode, speech_manager)
+        # Natural closing
+        if mode == "1":
+            print("\n🌟 I hope you enjoy exploring these places in Boston! Your personalized guide has been saved as 'personalized_boston_guide.txt'.")
+        elif mode == "2" and speech_manager:
+            closing_message = "I hope you enjoy exploring these places in Boston! Your personalized guide has been saved. Have a wonderful time!"
+            speech_manager.text_to_speech(closing_message, use_gtts=True)
+        elif mode == "3" and speech_manager:
+            print("\n🌟 I hope you enjoy exploring these places in Boston!")
+            closing_message = "Your personalized guide has been saved. Have a wonderful time exploring!"
+            speech_manager.text_to_speech(closing_message, use_gtts=True)
 
     except Exception as e:
-        error_message = f"\n❌ Error running AI agents: {str(e)}"
-        print(error_message)
-        if mode in ["2", "3"] and speech_manager:
-            speech_manager.text_to_speech("Sorry, there was an error running the AI agents.")
-        
-        print("💡 Make sure your OPENAI_API_KEY is set correctly.")
+        if "api_key" in str(e).lower():
+            error_msg = "💡 Please set your OPENAI_API_KEY environment variable to use the AI features."
+            print(f"\n❌ {error_msg}")
+            if mode in ["2", "3"] and speech_manager:
+                speech_manager.text_to_speech("Please set your OpenAI API key to use the AI features.", use_gtts=True)
+        else:
+            print(f"\n❌ Error: {str(e)}")
+            if mode in ["2", "3"] and speech_manager:
+                speech_manager.text_to_speech("Sorry, there was an unexpected error.", use_gtts=True)
         
     finally:
         # Clean up speech manager
