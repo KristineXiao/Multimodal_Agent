@@ -169,7 +169,7 @@ This multimodal agent extends a traditional CrewAI text-based system with compre
 
 ## Example Run Analysis
 
-### Scenario: Mixed Mode Food Recommendations
+### Scenario: Mixed-Mode Activity Recommendations
 
 **Input Sequence:**
 1. **Mode Selection**: User types "3" (Mixed mode)
