@@ -123,27 +123,6 @@ Multimodal_Agent/
 - **Transcription**: 2-5 seconds for 10-second clips
 - **TTS Generation**: 1-3 seconds per sentence
 
-## Example Usage
-
-```
-🎓 Welcome to Your Multimodal Harvard Student Digital Twin!
-=================================================================
-
-🎛️ Choose your interaction mode:
-1. Text only (traditional)
-2. Voice only (speech input/output)  
-3. Mixed mode (voice input, text + voice output)
-
-Enter your choice: 2
-
-🎤 Voice input: Say your choice: 'one', 'two', or 'three'
-[User speaks: "I'd like food recommendations"]
-✅ Understood: You chose food
-
-🔊 [Tong introduces herself with voice]
-🔊 [Personalized restaurant recommendations with voice output]
-```
-
 ---
 
 ## Implementation Details
@@ -152,7 +131,7 @@ Enter your choice: 2
 
 This multimodal agent extends a traditional CrewAI text-based system with comprehensive speech capabilities:
 
-#### **Speech-to-Text (STT) Pipeline**
+#### 1. **Speech-to-Text (STT) Pipeline**
 - **Library**: OpenAI Whisper (`openai-whisper`)
 - **Model**: Base model (74MB) for balanced speed/accuracy
 - **Audio Capture**: PyAudio for real-time microphone input
@@ -163,7 +142,7 @@ This multimodal agent extends a traditional CrewAI text-based system with compre
   - Robust voice choice parsing with multiple recognition patterns
   - Graceful fallback to text input on failure
 
-#### **Text-to-Speech (TTS) Pipeline**
+#### 2. **Text-to-Speech (TTS) Pipeline**
 - **Primary**: Google Text-to-Speech (gTTS) for high-quality, natural voice
 - **Fallback**: pyttsx3 for offline capability using system voices
 - **Audio Playback**: pygame mixer for reliable MP3 playback
@@ -173,7 +152,7 @@ This multimodal agent extends a traditional CrewAI text-based system with compre
   - 120-second timeout handling for long content
   - Fresh engine creation to prevent conflicts
 
-#### **Integration Architecture**
+#### 3. **Integration Architecture**
 - **Framework**: CrewAI for multi-agent orchestration
 - **Agents**: Two sequential agents (Self-introduction + Boston Guide)
 - **Modes**: Three interaction paradigms (text-only, voice-only, mixed)
@@ -190,13 +169,13 @@ This multimodal agent extends a traditional CrewAI text-based system with compre
 
 ## Example Run Analysis
 
-### Scenario: Voice-Only Mode Food Recommendations
+### Scenario: Mixed Mode Food Recommendations
 
 **Input Sequence:**
-1. **Mode Selection**: User types "2" (Voice-only mode)
-2. **Welcome Message**: System speaks personalized greeting
-3. **Choice Prompt**: System asks for recommendation type via voice
-4. **User Voice Input**: "Three!" (requesting both food and activities)
+1. **Mode Selection**: User types "3" (Mixed mode)
+2. **Welcome Message**: System speaks and print personalized greeting
+3. **Choice Prompt**: System asks for recommendation type via voice and text
+4. **User Voice Input**: "2" (requesting activities)
 5. **Processing**: CrewAI agents generate personalized content
 
 **System Output:**
@@ -235,8 +214,7 @@ Hi, I'm Tong, a Harvard M.S. Data Science student with a passion for street danc
 
 [TTS]: "Now that you know more about me, let me share my personalized Boston recommendations..."
 
-🔊 Speaking...
-[TTS]: 
+🔊 Speaking recommendations...
 📍 Recommendations
 1. 🎨 **Boston's Street Art Tour** - As someone passionate about artistic experiences and city walks, a self-guided tour exploring Boston's street art scene would be perfect for you! It combines the energy of adventure with the creativity of murals scattered across places like Allston. It's budget-friendly and creatively inspiring.
 
@@ -244,6 +222,10 @@ Hi, I'm Tong, a Harvard M.S. Data Science student with a passion for street danc
 
 3. 🎭 **Coolidge Corner Theatre Indie Film Night** - A perfect fit for your love of movies and artistic indulgence, this iconic theatre in Brookline showcases independent films at student-friendly prices. It feeds your creativity and artistic passion in a vibrant neighborhood atmosphere.
 
+🌟 I hope you enjoy exploring these places in Boston!
+
+🔊 Speaking ending... 
+Your personalized guide has been saved. Have a wonderful time exploring!
 ```
 
 **Key Insights Observed:**
